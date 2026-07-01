@@ -1,30 +1,23 @@
-// Dark Mode Toggle
+// Dark Mode
 const themeToggle = document.getElementById('themeToggle');
-
 if (localStorage.getItem('darkMode') === 'enabled') {
     document.body.classList.add('dark-mode');
     themeToggle.textContent = '☀️';
-} else {
-    themeToggle.textContent = '🌙';
 }
 
 themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('dark-mode');
-    
-    if (document.body.classList.contains('dark-mode')) {
-        localStorage.setItem('darkMode', 'enabled');
-        themeToggle.textContent = '☀️';
-    } else {
-        localStorage.setItem('darkMode', 'disabled');
-        themeToggle.textContent = '🌙';
-    }
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+    themeToggle.textContent = isDark ? '☀️' : '🌙';
 });
 
 // Color Themes
-const colorDots = document.querySelectorAll('.color-dot');
-colorDots.forEach(dot => {
+document.querySelectorAll('.color-dot').forEach(dot => {
     dot.addEventListener('click', () => {
-        const color = dot.classList[1];
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        const color = dot.dataset.color;
         const colors = ['purple', 'blue', 'green', 'orange'];
         colors.forEach(c => document.body.classList.remove(`${c}-theme`));
         document.body.classList.add(`${color}-theme`);
@@ -34,17 +27,18 @@ colorDots.forEach(dot => {
 
 const savedColor = localStorage.getItem('colorTheme');
 if (savedColor) {
-    const colors = ['purple', 'blue', 'green', 'orange'];
-    colors.forEach(c => document.body.classList.remove(`${c}-theme`));
-    document.body.classList.add(`${savedColor}-theme`);
+    document.querySelectorAll('.color-dot').forEach(d => {
+        if (d.dataset.color === savedColor) {
+            d.classList.add('active');
+            document.body.classList.add(`${savedColor}-theme`);
+        }
+    });
 }
 
 // DOM Elements
 const taskInput = document.getElementById('taskInput');
 const prioritySelect = document.getElementById('prioritySelect');
 const categorySelect = document.getElementById('categorySelect');
-const dueDateInput = document.getElementById('dueDateInput');
-const reminderTime = document.getElementById('reminderTime');
 const tagInput = document.getElementById('tagInput');
 const addBtn = document.getElementById('addBtn');
 const taskList = document.getElementById('taskList');
@@ -57,66 +51,53 @@ const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
 const importFile = document.getElementById('importFile');
 
-// Stats Elements
-const scoreValSpan = document.getElementById('scoreVal');
-const scoreMsg = document.getElementById('scoreMsg');
-const totalNumSpan = document.getElementById('totalNum');
-const pendingNumSpan = document.getElementById('pendingNum');
-const doneNumSpan = document.getElementById('doneNum');
-const highNumSpan = document.getElementById('highNum');
-const totalFillDiv = document.getElementById('totalFill');
-const pendingFillDiv = document.getElementById('pendingFill');
-const doneFillDiv = document.getElementById('doneFill');
-const highFillDiv = document.getElementById('highFill');
+// Stats
+const totalNum = document.getElementById('totalNum');
+const pendingNum = document.getElementById('pendingNum');
+const doneNum = document.getElementById('doneNum');
+const scoreVal = document.getElementById('scoreVal');
 
 let tasks = [];
 let currentFilter = 'all';
 
 function loadTasks() {
-    const savedTasks = localStorage.getItem('taskMasterData');
-    if (savedTasks) {
-        tasks = JSON.parse(savedTasks);
-    }
+    const saved = localStorage.getItem('todoTasks');
+    if (saved) tasks = JSON.parse(saved);
     renderTasks();
-    updateStatsAndCharts();
+    updateStats();
 }
 
 function saveTasks() {
-    localStorage.setItem('taskMasterData', JSON.stringify(tasks));
+    localStorage.setItem('todoTasks', JSON.stringify(tasks));
 }
 
 function addTask() {
     const text = taskInput.value.trim();
-    if (!text) {
-        alert('Please enter a task!');
-        return;
-    }
-
+    if (!text) { alert('Enter a task!'); return; }
+    
     const tags = tagInput.value.split(',').map(t => t.trim()).filter(t => t);
-
-    const newTask = {
+    tasks.unshift({
         id: Date.now(),
-        text: text,
+        text,
         completed: false,
         priority: prioritySelect.value,
         category: categorySelect.value,
-        dueDate: dueDateInput.value,
-        reminderTime: reminderTime.value,
-        tags: tags,
-        createdAt: new Date().toISOString()
-    };
-
-    tasks.unshift(newTask);
+        tags
+    });
     saveTasks();
     renderTasks();
-    updateStatsAndCharts();
+    updateStats();
     updateTagFilter();
-
     taskInput.value = '';
-    dueDateInput.value = '';
-    reminderTime.value = '';
     tagInput.value = '';
     taskInput.focus();
+}
+
+function toggleComplete(id) {
+    tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+    saveTasks();
+    renderTasks();
+    updateStats();
 }
 
 function deleteTask(id) {
@@ -124,7 +105,7 @@ function deleteTask(id) {
         tasks = tasks.filter(t => t.id !== id);
         saveTasks();
         renderTasks();
-        updateStatsAndCharts();
+        updateStats();
         updateTagFilter();
     }
 }
@@ -139,171 +120,98 @@ function editTask(id) {
     }
 }
 
-function toggleComplete(id) {
-    tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
-    saveTasks();
-    renderTasks();
-    updateStatsAndCharts();
-}
-
 function clearCompleted() {
-    const completedCount = tasks.filter(t => t.completed).length;
-    if (completedCount === 0) {
-        alert('No completed tasks to clear!');
-        return;
-    }
-    if (confirm(`Clear ${completedCount} completed task(s)?`)) {
+    const count = tasks.filter(t => t.completed).length;
+    if (count === 0) { alert('No completed tasks!'); return; }
+    if (confirm(`Clear ${count} completed tasks?`)) {
         tasks = tasks.filter(t => !t.completed);
         saveTasks();
         renderTasks();
-        updateStatsAndCharts();
+        updateStats();
         updateTagFilter();
     }
 }
 
 function updateTagFilter() {
     const allTags = new Set();
-    tasks.forEach(task => {
-        task.tags?.forEach(tag => allTags.add(tag));
-    });
-    
+    tasks.forEach(t => t.tags?.forEach(tag => allTags.add(tag)));
     filterTag.innerHTML = '<option value="all">All Tags</option>';
     allTags.forEach(tag => {
-        filterTag.innerHTML += `<option value="${tag}">🏷️ ${tag}</option>`;
+        filterTag.innerHTML += `<option value="${tag}">${tag}</option>`;
     });
 }
 
-function updateStatsAndCharts() {
+function updateStats() {
     const total = tasks.length;
     const pending = tasks.filter(t => !t.completed).length;
-    const completed = tasks.filter(t => t.completed).length;
-    const highPriority = tasks.filter(t => t.priority === 'high' && !t.completed).length;
+    const done = tasks.filter(t => t.completed).length;
+    const score = total > 0 ? Math.round((done / total) * 100) : 0;
     
-    totalNumSpan.textContent = total;
-    pendingNumSpan.textContent = pending;
-    doneNumSpan.textContent = completed;
-    highNumSpan.textContent = highPriority;
-    
-    const maxVal = Math.max(total, 1);
-    totalFillDiv.style.width = `${(total / maxVal) * 100}%`;
-    pendingFillDiv.style.width = `${(pending / maxVal) * 100}%`;
-    doneFillDiv.style.width = `${(completed / maxVal) * 100}%`;
-    highFillDiv.style.width = `${(highPriority / maxVal) * 100}%`;
-    
-    let score = 0;
-    if (total > 0) {
-        score = Math.round((completed / total) * 100);
-    }
-    scoreValSpan.textContent = score;
-    
-    const ring = document.querySelector('.ring-progress');
-    if (ring) {
-        const circumference = 188;
-        const offset = circumference - (score / 100) * circumference;
-        ring.style.strokeDashoffset = offset;
-    }
-    
-    if (score === 100) scoreMsg.textContent = '🏆 Perfect!';
-    else if (score >= 75) scoreMsg.textContent = '🎉 Great job!';
-    else if (score >= 50) scoreMsg.textContent = '📈 Good progress!';
-    else if (score >= 25) scoreMsg.textContent = '💪 Keep going!';
-    else scoreMsg.textContent = 'Add tasks to start';
+    totalNum.textContent = total;
+    pendingNum.textContent = pending;
+    doneNum.textContent = done;
+    scoreVal.textContent = score + '%';
 }
 
 function renderTasks() {
     let filtered = [...tasks];
     
-    if (currentFilter === 'pending') {
-        filtered = filtered.filter(t => !t.completed);
-    } else if (currentFilter === 'completed') {
-        filtered = filtered.filter(t => t.completed);
+    if (currentFilter === 'pending') filtered = filtered.filter(t => !t.completed);
+    else if (currentFilter === 'completed') filtered = filtered.filter(t => t.completed);
+    
+    if (filterPriority.value !== 'all') {
+        filtered = filtered.filter(t => t.priority === filterPriority.value);
+    }
+    if (filterCategory.value !== 'all') {
+        filtered = filtered.filter(t => t.category === filterCategory.value);
+    }
+    if (filterTag.value !== 'all') {
+        filtered = filtered.filter(t => t.tags?.includes(filterTag.value));
     }
     
-    const priorityFilter = filterPriority.value;
-    if (priorityFilter !== 'all') {
-        filtered = filtered.filter(t => t.priority === priorityFilter);
-    }
-    
-    const categoryFilter = filterCategory.value;
-    if (categoryFilter !== 'all') {
-        filtered = filtered.filter(t => t.category === categoryFilter);
-    }
-    
-    const tagFilter = filterTag.value;
-    if (tagFilter !== 'all') {
-        filtered = filtered.filter(t => t.tags?.includes(tagFilter));
-    }
-    
-    const searchTerm = searchInput.value.toLowerCase();
-    if (searchTerm) {
-        filtered = filtered.filter(t => t.text.toLowerCase().includes(searchTerm));
-    }
+    const search = searchInput.value.toLowerCase();
+    if (search) filtered = filtered.filter(t => t.text.toLowerCase().includes(search));
     
     if (filtered.length === 0) {
-        taskList.innerHTML = '<div class="empty-state">✨ No tasks match your criteria</div>';
+        taskList.innerHTML = '<div class="empty">✨ No tasks found</div>';
         return;
     }
     
     taskList.innerHTML = filtered.map(task => {
-        let priorityClass = '';
-        if (task.priority === 'low') priorityClass = 'badge-low';
-        else if (task.priority === 'medium') priorityClass = 'badge-med';
-        else priorityClass = 'badge-high';
-        
+        const priorityClass = task.priority === 'low' ? 'badge-low' : 
+                             task.priority === 'medium' ? 'badge-medium' : 'badge-high';
         return `
             <div class="task-item">
-                <div class="task-row">
-                    <div class="task-info">
-                        <div class="task-title ${task.completed ? 'completed' : ''}" data-id="${task.id}">
-                            ${escapeHtml(task.text)}
-                        </div>
-                        <div class="task-badges">
-                            <span class="badge ${priorityClass}">${task.priority}</span>
-                            <span class="badge badge-cat">${task.category}</span>
-                            ${task.dueDate ? `<span class="badge badge-cat">📅 ${task.dueDate}</span>` : ''}
-                            ${task.tags?.map(t => `<span class="badge badge-cat">🏷️ ${t}</span>`).join('')}
-                        </div>
+                <div class="task-info" onclick="toggleComplete(${task.id})">
+                    <div class="task-title ${task.completed ? 'completed' : ''}">${task.text}</div>
+                    <div class="task-meta">
+                        <span class="badge ${priorityClass}">${task.priority}</span>
+                        <span class="badge badge-cat">${task.category}</span>
+                        ${task.tags?.map(t => `<span class="badge badge-cat">#${t}</span>`).join('')}
                     </div>
-                    <div class="task-buttons">
-                        <button class="edit-task" data-id="${task.id}">✏️</button>
-                        <button class="delete-task" data-id="${task.id}">🗑️</button>
-                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="edit" onclick="editTask(${task.id})">✏️</button>
+                    <button class="delete" onclick="deleteTask(${task.id})">🗑️</button>
                 </div>
             </div>
         `;
     }).join('');
-    
-    document.querySelectorAll('.task-title').forEach(el => {
-        el.addEventListener('click', () => toggleComplete(parseInt(el.dataset.id)));
-    });
-    document.querySelectorAll('.edit-task').forEach(btn => {
-        btn.addEventListener('click', () => editTask(parseInt(btn.dataset.id)));
-    });
-    document.querySelectorAll('.delete-task').forEach(btn => {
-        btn.addEventListener('click', () => deleteTask(parseInt(btn.dataset.id)));
-    });
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 function exportTasks() {
-    const dataStr = JSON.stringify(tasks, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `taskmaster-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `tasks-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
     alert('Tasks exported!');
 }
 
-function importTasks(event) {
-    const file = event.target.files[0];
+function importTasks(e) {
+    const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -312,10 +220,10 @@ function importTasks(event) {
             tasks = [...tasks, ...imported];
             saveTasks();
             renderTasks();
-            updateStatsAndCharts();
+            updateStats();
             updateTagFilter();
             alert('Tasks imported!');
-        } catch (error) {
+        } catch (err) {
             alert('Invalid file');
         }
     };
@@ -323,20 +231,18 @@ function importTasks(event) {
     importFile.value = '';
 }
 
+// Event Listeners
 addBtn.addEventListener('click', addTask);
+taskInput.addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
 clearCompletedBtn.addEventListener('click', clearCompleted);
 exportBtn.addEventListener('click', exportTasks);
 importBtn.addEventListener('click', () => importFile.click());
 importFile.addEventListener('change', importTasks);
 
-taskInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addTask();
-});
-
-searchInput.addEventListener('input', () => renderTasks());
-filterPriority.addEventListener('change', () => renderTasks());
-filterCategory.addEventListener('change', () => renderTasks());
-filterTag.addEventListener('change', () => renderTasks());
+searchInput.addEventListener('input', renderTasks);
+filterPriority.addEventListener('change', renderTasks);
+filterCategory.addEventListener('change', renderTasks);
+filterTag.addEventListener('change', renderTasks);
 
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
