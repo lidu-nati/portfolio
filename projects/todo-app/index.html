@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <h1>📋 TaskMaster</h1>
+        <p class="subtitle">Task Manager</p>
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-title">➕ Add Task</div>
+                <input type="text" id="taskInput" class="full-input" placeholder="What to do?">
+                <button id="addBtn" class="add-button">+ Add</button>
+            </div>
+        </div>
+        <div id="taskList" class="task-list">
+            <div class="empty-state">✨ No tasks yet</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
