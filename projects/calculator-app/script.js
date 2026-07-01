@@ -71,19 +71,25 @@ function deleteLast() {
     updateDisplay();
 }
 
+// Button click handlers
 document.querySelectorAll('.number').forEach(btn => {
-    btn.addEventListener('click', () => handleNumber(btn.textContent));
+    btn.addEventListener('click', function() {
+        handleNumber(this.textContent);
+    });
 });
 
 document.querySelectorAll('.operator').forEach(btn => {
-    btn.addEventListener('click', () => handleOperator(btn.textContent));
+    btn.addEventListener('click', function() {
+        handleOperator(this.textContent);
+    });
 });
 
 document.querySelector('.equals').addEventListener('click', calculate);
 document.querySelector('.clear').addEventListener('click', clearAll);
 document.querySelector('.delete').addEventListener('click', deleteLast);
 
-document.addEventListener('keydown', (e) => {
+// Keyboard support
+document.addEventListener('keydown', function(e) {
     if (e.key >= '0' && e.key <= '9') handleNumber(e.key);
     if (e.key === '.') handleNumber('.');
     if (e.key === '+') handleOperator('+');
