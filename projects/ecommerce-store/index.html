@@ -39,6 +39,21 @@
             </div>
         </div>
     </div>
+
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Checkout</h2>
+            <form id="checkoutForm">
+                <input type="text" placeholder="Full Name" id="fullName" required>
+                <input type="email" placeholder="Email" id="email" required>
+                <input type="text" placeholder="Address" id="address" required>
+                <input type="text" placeholder="Credit Card (16 digits)" id="creditCard" maxlength="16" required>
+                <button type="submit">Place Order</button>
+            </form>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
