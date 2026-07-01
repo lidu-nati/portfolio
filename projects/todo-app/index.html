@@ -3,24 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>To-Do List App</title>
+    <title>TaskMaster Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app">
-        <h1>📋 TaskMaster</h1>
-        <p class="subtitle">Task Manager</p>
-        <div class="dashboard">
-            <div class="card">
-                <div class="card-title">➕ Add Task</div>
-                <input type="text" id="taskInput" class="full-input" placeholder="What to do?">
-                <button id="addBtn" class="add-button">+ Add</button>
+        <div class="main">
+            <!-- Header with Dark Mode inside -->
+            <div class="header-area">
+                <div>
+                    <h1>📋 TaskMaster</h1>
+                    <p class="subtitle">Task Manager</p>
+                </div>
+                <button class="dark-btn" id="themeToggle">🌙</button>
             </div>
-        </div>
-        <div id="taskList" class="task-list">
-            <div class="empty-state">✨ No tasks yet</div>
+
+            <!-- Color Picker -->
+            <div class="color-strip">
+                <button class="color-dot purple" data-color="purple"></button>
+                <button class="color-dot blue" data-color="blue"></button>
+                <button class="color-dot green" data-color="green"></button>
+                <button class="color-dot orange" data-color="orange"></button>
+            </div>
+
+            <!-- Dashboard -->
+            <div class="dashboard">
+                <div class="left">
+                    <div class="card">
+                        <div class="card-title">📈 Score</div>
+                        <div class="score-wrap">
+                            <div class="ring">
+                                <svg width="70" height="70" viewBox="0 0 70 70">
+                                    <circle cx="35" cy="35" r="30" fill="none" stroke="#e2e8f0" stroke-width="4"/>
+                                    <circle class="ring-progress" cx="35" cy="35" r="30" fill="none" stroke="#667eea" stroke-width="4" stroke-dasharray="188" stroke-dashoffset="188"/>
+                                </svg>
+                                <div class="ring-text">
+                                    <span id="scoreVal">0</span><small>%</small>
+                                </div>
+                            </div>
+                            <p id="scoreMsg" class="small-text">Add tasks</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📊 Stats</div>
+                        <div class="stat-item">
+                            <span class="stat-label">Total</span>
+                            <div class="stat-bar"><div class="stat-fill total-fill" id="totalFill" style="width:0%"></div></div>
+                            <span class="stat-number" id="totalNum">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Pending</span>
+                            <div class="stat-bar"><div class="stat-fill pending-fill" id="pendingFill" style="width:0%"></div></div>
+                            <span class="stat-number" id="pendingNum">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Done</span>
+                            <div class="stat-bar"><div class="stat-fill done-fill" id="doneFill" style="width:0%"></div></div>
+                            <span class="stat-number" id="doneNum">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">High</span>
+                            <div class="stat-bar"><div class="stat-fill high-fill" id="highFill" style="width:0%"></div></div>
+                            <span class="stat-number" id="highNum">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right">
+                    <div class="card">
+                        <div class="card-title">➕ Add Task</div>
+                        <input type="text" id="taskInput" class="full-input" placeholder="What to do?">
+                        <div class="row-2">
+                            <select id="prioritySelect" class="half-input">
+                                <option value="low">🟢 Low</option>
+                                <option value="medium" selected>🟡 Med</option>
+                                <option value="high">🔴 High</option>
+                            </select>
+                            <select id="categorySelect" class="half-input">
+                                <option value="work">💼 Work</option>
+                                <option value="personal">🏠 Home</option>
+                                <option value="shopping">🛒 Shop</option>
+                                <option value="health">💪 Health</option>
+                            </select>
+                        </div>
+                        <div class="row-2">
+                            <input type="date" id="dueDateInput" class="half-input">
+                            <input type="time" id="reminderTime" class="half-input">
+                        </div>
+                        <input type="text" id="tagInput" class="full-input" placeholder="Tags (work, urgent)">
+                        <button id="addBtn" class="add-button">+ Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filters-row">
+                <input type="text" id="searchInput" class="search-box" placeholder="🔍">
+                <select id="filterPriority" class="filter-select">
+                    <option value="all">Priority</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Med</option>
+                    <option value="high">High</option>
+                </select>
+                <select id="filterCategory" class="filter-select">
+                    <option value="all">Category</option>
+                    <option value="work">Work</option>
+                    <option value="personal">Home</option>
+                    <option value="shopping">Shop</option>
+                    <option value="health">Health</option>
+                </select>
+                <select id="filterTag" class="filter-select">
+                    <option value="all">Tags</option>
+                </select>
+            </div>
+
+            <div class="tabs-row">
+                <button class="tab active" data-filter="all">All</button>
+                <button class="tab" data-filter="pending">Pending</button>
+                <button class="tab" data-filter="completed">Done</button>
+            </div>
+
+            <div id="taskList" class="task-list">
+                <div class="empty-state">✨ No tasks yet</div>
+            </div>
+
+            <div class="bottom-row">
+                <button id="clearCompletedBtn" class="btn-clear">Clear Done</button>
+                <button id="exportBtn" class="btn-action">Export</button>
+                <button id="importBtn" class="btn-action">Import</button>
+            </div>
+            <input type="file" id="importFile" accept=".json" style="display: none">
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
